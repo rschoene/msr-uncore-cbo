@@ -29,6 +29,7 @@
 #include <sys/mman.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <cpuid.h>
 
 
 #include "scan.h"
@@ -57,6 +58,13 @@ unsigned long long val_disable_ctrs;
 unsigned long long val_select_evt_core;
 unsigned long long val_reset_ctrs;
 
+static int get_cpu_architecture() {
+    unsigned int model;
+    int name[4] = {0, 0, 0, 0};
+    __cpuid(0, model, name[0], name[2], name[1]);
+    if(strcmp((char*)name, "GenuineIntel") != 0) return -1;
+    return model;
+}
 
 int main(int argc, char **argv){
 
@@ -96,14 +104,20 @@ int main(int argc, char **argv){
     exit(1);
   }
 
+  if(get_cpu_architecture() >= 0x16) {
+      // >= skylake
+      msr_unc_perf_global_ctr = 0xe01;
+      val_enable_ctrs = 0x20000000;
+  } else {
+      msr_unc_perf_global_ctr = 0x391;
+      val_enable_ctrs = 0x2000000f;
+  }
 	/*
 	 * Initialize architecture-dependent variables
 	 */
-    max_slices = 4;
-    msr_unc_perf_global_ctr = 0x391;
+    max_slices = 8;
     msr_unc_cbo_perfevtsel0 = (unsigned long long []) {0x700, 0x710, 0x720, 0x730};
     msr_unc_cbo_per_ctr0 = (unsigned long long []) {0x706, 0x716, 0x726, 0x736};
-    val_enable_ctrs = 0x2000000f;
     val_disable_ctrs = 0x0;
     val_select_evt_core = 0x408f34;
     val_reset_ctrs = 0x0;
