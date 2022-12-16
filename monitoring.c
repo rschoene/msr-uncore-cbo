@@ -23,53 +23,105 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <sys/ioctl.h>
+#include <linux/perf_event.h>
+#include <asm/unistd.h>
+#include <sys/mman.h>
+#include <assert.h>
+#include <sys/ioctl.h>
+#include <string.h>
 
 #include "monitoring.h"
 #include "util.h"
 
+#define ARRAY_SIZE (1024*1024)
+#define BUFFER_SIZE (256)
 
+
+static long perf_event_open(struct perf_event_attr *hw_event, pid_t pid,
+			    int cpu, int group_fd, unsigned long flags)
+{
+	int ret;
+
+	ret = syscall(__NR_perf_event_open, hw_event, pid, cpu,
+	               group_fd, flags);
+	return ret;
+}
+
+
+/* from https://stackoverflow.com/questions/39448276/how-to-use-clflush */
+/* from Reverse Engineering Intel Last-Level Cache Complex Addressing Using Performance Counters */
+void polling ( char* addr ){
+  for ( int i =0; i < 100000 ; i ++){
+    asm volatile ("clflush (%0)" :: "r"(addr));
+  }
+}
+/* from https://github.com/clementine-m/msr-uncore-cbo/ */
 void monitor_cbo(){
-  int i;
 
-  // Disable counters
-  uint64_t val[] = {val_disable_ctrs};
-  wrmsr_on_cpu_0(msr_unc_perf_global_ctr,1,val);
+  // setup counters
+  struct perf_event_attr pe[nb_cores];
 
+  char* array=malloc(ARRAY_SIZE);
+  char* values=malloc(ARRAY_SIZE/64);
 
-  // Reset counters
-  val[0] = val_reset_ctrs;
-  for(i=0; i<nb_cores; i++){
-    wrmsr_on_cpu_0(msr_unc_cbo_per_ctr0[i],1,val);
+  long pe_fd[nb_cores];
+
+  for(int i=0; i<nb_cores; i++){
+    // try to get the type from sysfs
+    char buffer[BUFFER_SIZE];
+    sprintf(buffer,"/sys/bus/event_source/devices/uncore_cbox_%d/type",i);
+    int fd=open(buffer,O_RDONLY);
+    assert(fd>0);
+    assert((read(fd, buffer, BUFFER_SIZE)!=-1));
+    int type=atoi(buffer);
+    memset(&pe[i],0,sizeof(struct perf_event_attr));
+    pe[i].type=type;
+    pe[i].config=val_select_evt_core;
+    pe[i].disabled=1; 
+    close(fd);
   }
 
-  // Select event to monitor
-  val[0] = val_select_evt_core;
-  for(i=0; i<nb_cores; i++){
-    wrmsr_on_cpu_0(msr_unc_cbo_perfevtsel0[i], 1, val);
+  for(int i=0; i<nb_cores; i++){
+    pe_fd[i]=perf_event_open(&pe[i],0,0,-1,0);
   }
 
-  // Enable counting
-  val[0] = val_enable_ctrs;
-  wrmsr_on_cpu_0(msr_unc_perf_global_ctr, 1, val);
-
-
+  for (char* address=array;address<&array[ARRAY_SIZE];address+=64){
+  // Reset and enable
+    for(int i=0; i<nb_cores; i++){
+      ioctl(pe_fd[i], PERF_EVENT_IOC_RESET, 0);
+      ioctl(pe_fd[i], PERF_EVENT_IOC_ENABLE, 0);
+    }
   // Launch program to monitor
-  // TODO replace usleep by some function you want to monitor
-  usleep(100000);
+    polling(address);
+    for(int i=0; i<nb_cores; i++){
+  // Disable
+      ioctl(pe_fd[i], PERF_EVENT_IOC_DISABLE, 0);
+    }
 
-  // Read counter
-  int * cboxes = calloc(max_slices, sizeof(int));
-  for(i=0; i<nb_cores; i++){
-    cboxes[i] = rdmsr_on_cpu_0(msr_unc_cbo_per_ctr0[i]);
+  // Read and find max
+    long long maximum=0;
+    char maximum_cbo=-1;
+
+    for(int i=0; i<nb_cores; i++){
+      long long value;
+      read(pe_fd[i],&value,sizeof(long long));
+      if (value>maximum){
+        maximum=value;
+        maximum_cbo=i;
+      }
+    }
+    values[address-array]=maximum_cbo;
   }
 
-  // Pretty print
-  for(i=0; i<nb_cores; i++){
-    printf(" % 10d", cboxes[i]);
+  for(char* address=array;address<&array[ARRAY_SIZE];address+=64){
+    printf(" %p %d", address,values[address-array]);
+    printf("\n");
   }
-  printf("\n");
 
-
-
-  free(cboxes);
+  for(int i=0; i<nb_cores; i++){
+    close(pe_fd[i]);
+  }
 }
