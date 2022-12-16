@@ -92,13 +92,13 @@ char *end;
       read_val = (read_val << 8) + c_buf[i];
    }
    fclose(f);
-   return 0x0000ffffffffffff & read_val | virt_addr & 0xfff;
+   return (( 0xffffffffffffff & read_val) * getpagesize() ) + (virt_addr % getpagesize());
 }
 
 /* from https://stackoverflow.com/questions/39448276/how-to-use-clflush */
 /* from Reverse Engineering Intel Last-Level Cache Complex Addressing Using Performance Counters */
 void polling ( char* addr ){
-  for ( int i =0; i < 5000 ; i ++){
+  for ( int i =0; i < 2000 ; i ++){
     asm volatile ("clflush (%0)" :: "r"(addr));
   }
 }
@@ -109,6 +109,7 @@ void monitor_cbo(){
   struct perf_event_attr pe[nb_cores];
 
   char* array=malloc(ARRAY_SIZE);
+  for (int i=0;i<ARRAY_SIZE;i++){array[i]=1;}
 /*  long long** values=malloc(ARRAY_SIZE/64*sizeof(long long*));
   for(int i=0; i<ARRAY_SIZE/64; i++){
     values[i]=malloc(nb_cores*sizeof(long long));
@@ -174,7 +175,7 @@ void monitor_cbo(){
     printf("\n");
   }*/
   for(char* address=array;address<&array[ARRAY_SIZE];address+=64){
-    printf(" %lli %d\n", read_pagemap(address),values[(address-array)/64]);
+    printf("%lli %lli %d\n", read_pagemap(address), address, values[(address-array)/64]);
   }
 
   for(int i=0; i<nb_cores; i++){
