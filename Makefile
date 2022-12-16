@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS= -Wall -O0 -g -lm
+CFLAGS= -Wall -O3 -g -lm
 LIST = scan
 
 all: ${LIST}
@@ -9,7 +9,7 @@ monitoring.o: util.o monitoring.c monitoring.h
 scan.o: scan.c scan.h
 
 scan: monitoring.o scan.o util.o 
-	${CC} -Wall -O0 -g scan.o util.o monitoring.o -o scan -lm
+	${CC} -Wall -O3 -g scan.o util.o monitoring.o -o scan -lm
 
 
 
