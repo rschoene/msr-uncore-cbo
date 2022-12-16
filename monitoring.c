@@ -85,7 +85,7 @@ void monitor_cbo(){
   }
 
   for(int i=0; i<nb_cores; i++){
-    pe_fd[i]=perf_event_open(&pe[i],0,0,-1,0);
+    pe_fd[i]=perf_event_open(&pe[i],-1,0,-1,0);
   }
 
   for (char* address=array;address<&array[ARRAY_SIZE];address+=64){
@@ -109,7 +109,6 @@ void monitor_cbo(){
       long long value;
       read(pe_fd[i],&value,sizeof(long long));
       if (value>maximum){
-        printf("%p %d %lli\n",address,i,value);
         maximum=value;
         maximum_cbo=i;
       }
