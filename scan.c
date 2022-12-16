@@ -115,7 +115,7 @@ int main(int argc, char **argv){
 	/*
 	 * Initialize architecture-dependent variables
 	 */
-    max_slices = 8;
+    max_slices = 24;
     msr_unc_cbo_perfevtsel0 = (unsigned long long []) {0x700, 0x710, 0x720, 0x730};
     msr_unc_cbo_per_ctr0 = (unsigned long long []) {0x706, 0x716, 0x726, 0x736};
     val_disable_ctrs = 0x0;
