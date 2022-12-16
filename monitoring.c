@@ -58,9 +58,7 @@ static long perf_event_open(struct perf_event_attr *hw_event, pid_t pid,
 unsigned long long read_pagemap(unsigned long long virt_addr){
 
 int i, c, pid, status;
-unsigned long virt_addr; 
 uint64_t read_val, file_offset;
-char path_buf [0x100] = {};
 FILE * f;
 char *end;
   char path_buf[]="/proc/self/pagemap";
@@ -87,11 +85,7 @@ char *end;
          printf("\nReached end of the file\n");
          return 0;
       }
-      if(is_bigendian())
-           c_buf[i] = c;
-      else
-           c_buf[PAGEMAP_ENTRY - i - 1] = c;
-      printf("[%d]0x%x ", i, c);
+      c_buf[PAGEMAP_ENTRY - i - 1] = c;
    }
    for(i=0; i < PAGEMAP_ENTRY; i++){
       //printf("%d ",c_buf[i]);
