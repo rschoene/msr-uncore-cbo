@@ -65,10 +65,12 @@ void monitor_cbo(){
   struct perf_event_attr pe[nb_cores];
 
   char* array=malloc(ARRAY_SIZE);
-  long long** values=malloc(ARRAY_SIZE/64*sizeof(long long*));
+/*  long long** values=malloc(ARRAY_SIZE/64*sizeof(long long*));
   for(int i=0; i<ARRAY_SIZE/64; i++){
     values[i]=malloc(nb_cores*sizeof(long long));
   }
+  */
+  char* values=malloc(ARRAY_SIZE/64);
 
   long pe_fd[nb_cores];
 
@@ -111,21 +113,24 @@ void monitor_cbo(){
     for(int i=0; i<nb_cores; i++){
       long long value;
       read(pe_fd[i],&value,sizeof(long long));
-      values[(address-array)/64][i]=value;
-/*      if (value>maximum){
+//      values[(address-array)/64][i]=value;
+      if (value>maximum){
         maximum=value;
         maximum_cbo=i;
-      }*/
+      }
     }
-//    values[(address-array)/64]=maximum_cbo;*/
+    values[(address-array)/64]=maximum_cbo;
   }
 
-  for(char* address=array;address<&array[ARRAY_SIZE];address+=64){
+/*  for(char* address=array;address<&array[ARRAY_SIZE];address+=64){
     printf(" %lli,", address);
     for(int i=0; i<nb_cores; i++){
       printf(" %lli,",values[(address-array)/64][i]);
     }
     printf("\n");
+  }*/
+  for(char* address=array;address<&array[ARRAY_SIZE];address+=64){
+    printf(" %lli %d\n", address,values[(address-array)/64]);
   }
 
   for(int i=0; i<nb_cores; i++){
