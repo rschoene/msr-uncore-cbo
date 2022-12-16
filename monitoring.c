@@ -98,7 +98,7 @@ char *end;
 /* from https://stackoverflow.com/questions/39448276/how-to-use-clflush */
 /* from Reverse Engineering Intel Last-Level Cache Complex Addressing Using Performance Counters */
 void polling ( char* addr ){
-  for ( int i =0; i < 100000 ; i ++){
+  for ( int i =0; i < 5000 ; i ++){
     asm volatile ("clflush (%0)" :: "r"(addr));
   }
 }
