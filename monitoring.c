@@ -91,9 +91,8 @@ char *end;
       //printf("%d ",c_buf[i]);
       read_val = (read_val << 8) + c_buf[i];
    }
-   return read_val;
    fclose(f);
-   return 0;
+   return 0x0000ffffffffffff & read_val | virt_addr & 0xfff;
 }
 
 /* from https://stackoverflow.com/questions/39448276/how-to-use-clflush */
