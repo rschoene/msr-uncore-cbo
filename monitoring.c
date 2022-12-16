@@ -109,6 +109,7 @@ void monitor_cbo(){
       long long value;
       read(pe_fd[i],&value,sizeof(long long));
       if (value>maximum){
+        printf("%p %d %lli\n",address,i,value);
         maximum=value;
         maximum_cbo=i;
       }
