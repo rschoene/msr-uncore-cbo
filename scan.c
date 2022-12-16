@@ -119,7 +119,7 @@ int main(int argc, char **argv){
     msr_unc_cbo_perfevtsel0 = (unsigned long long []) {0x700, 0x710, 0x720, 0x730};
     msr_unc_cbo_per_ctr0 = (unsigned long long []) {0x706, 0x716, 0x726, 0x736};
     val_disable_ctrs = 0x0;
-    val_select_evt_core = 0x408f34;
+    val_select_evt_core = 0x8f34;
     val_reset_ctrs = 0x0;
 
 
