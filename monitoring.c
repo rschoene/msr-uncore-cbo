@@ -113,11 +113,11 @@ void monitor_cbo(){
         maximum_cbo=i;
       }
     }
-    values[address-array]=maximum_cbo;
+    values[(address-array)/64]=maximum_cbo;
   }
 
   for(char* address=array;address<&array[ARRAY_SIZE];address+=64){
-    printf(" %p %d", address,values[address-array]);
+    printf(" %p %d", address,values[(address-array)/64]);
     printf("\n");
   }
 
